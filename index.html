@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hafenmanöver-Trainer · SKS</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E⚓%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <header id="top">
+    <button id="btnMenu" class="icon" title="Menü ein-/ausblenden" aria-label="Menü">☰</button>
+    <div class="brand"><span class="anchor">⚓</span><div><b>Hafenmanöver-Trainer</b><small>SKS · Physik-Simulation</small></div></div>
+    <div class="spacer"></div>
+    <label class="seg tempo" title="Simulationsgeschwindigkeit">Tempo
+      <select id="selTempo"><option value="0.25">¼×</option><option value="0.5">½×</option><option value="1" selected>1×</option><option value="2">2×</option></select>
+    </label>
+    <button id="btnPause" class="btn" title="Pause (P)">⏸ Pause</button>
+    <button id="btnReset" class="btn" title="Manöver neu starten (R)">↺ Neustart</button>
+    <button id="btnHelp" class="btn ghost" title="Hilfe">? Hilfe</button>
+  </header>
+
+  <aside id="side">
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-tab="task">Aufgabe</button>
+      <button class="tab" data-tab="boat">Boot</button>
+      <button class="tab" data-tab="env">Umwelt</button>
+      <button class="tab" data-tab="lines">Leinen</button>
+    </nav>
+
+    <section class="panel active" id="tab-task">
+      <h3>Übungsaufgabe</h3>
+      <div id="taskList" class="cards"></div>
+      <div id="taskText" class="note"></div>
+      <details class="adv">
+        <summary>Eigene Kombination</summary>
+        <label>Hafen / Liegeplatz<select id="selLayout"></select></label>
+        <label>Startzustand<select id="selStart"><option value="anlegen">Anlegen (Boot im Hafenbecken)</option><option value="ablegen">Ablegen (Boot liegt fest)</option></select></label>
+        <label>Leinen beim Ablegen<select id="selLineSet"><option value="all">Standardleinen</option><option value="none">keine</option></select></label>
+        <button id="btnLoadCustom" class="btn wide">Laden</button>
+      </details>
+    </section>
+
+    <section class="panel" id="tab-boat">
+      <h3>Bootstyp</h3>
+      <select id="selBoat"></select>
+      <div id="boatDesc" class="note"></div>
+      <h3>Konfiguration</h3>
+      <div id="cfgForm"></div>
+      <div id="rudInfo" class="note info"></div>
+      <p class="hint">Änderungen setzen das Manöver zurück.</p>
+    </section>
+
+    <section class="panel" id="tab-env">
+      <h3>Wind</h3>
+      <label class="rng">Windstärke <output id="oWind">0 kn</output><input type="range" id="rWind" min="0" max="35" step="1" value="0"></label>
+      <label class="rng">Wind aus Richtung <output id="oWindDir">0° (N)</output><input type="range" id="rWindDir" min="0" max="359" step="5" value="0"></label>
+      <label class="chk"><input type="checkbox" id="cGust"> Böen</label>
+      <h3>Strömung</h3>
+      <label class="rng">Stärke <output id="oCur">0.0 kn</output><input type="range" id="rCur" min="0" max="2" step="0.1" value="0"></label>
+      <label class="rng">setzt nach <output id="oCurDir">90° (O)</output><input type="range" id="rCurDir" min="0" max="359" step="5" value="90"></label>
+      <h3>Leinen</h3>
+      <label>Material (für neue Leinen)<select id="selRope"><option value="40000">Polyamid (dehnbar)</option><option value="100000">Polyester (steif)</option></select></label>
+      <h3>Anzeige</h3>
+      <label class="chk"><input type="checkbox" id="cForces" checked> Kräfte anzeigen</label>
+      <label class="chk"><input type="checkbox" id="cWash" checked> Propellerstrahl &amp; Kielwasser</label>
+      <label class="chk"><input type="checkbox" id="cUnder"> Unterwasserschiff (Kiel, Ruder, Propeller)</label>
+      <label class="chk"><input type="checkbox" id="cTrail"> Spur</label>
+      <label class="chk"><input type="checkbox" id="cFenders" checked> Fender</label>
+      <label class="chk"><input type="checkbox" id="cFollow"> Kamera folgt dem Boot</label>
+      <div class="legend">
+        <span><i style="background:#ff5d5d"></i>Schub</span><span><i style="background:#ffb020"></i>Radeffekt</span>
+        <span><i style="background:#4cc9f0"></i>Ruder</span><span><i style="background:#a78bfa"></i>Bugstrahler</span>
+        <span><i style="background:#ffe066"></i>Leine</span><span><i style="background:#e5eef3"></i>Wind</span>
+      </div>
+    </section>
+
+    <section class="panel" id="tab-lines">
+      <h3>Leinen</h3>
+      <div class="row">
+        <button id="btnLink" class="btn wide">＋ Leine setzen</button>
+      </div>
+      <p class="hint">Klicke erst eine <b>Klampe am Boot</b>, dann einen <b>Festmachpunkt</b> (Klampe, Poller, Pfahl, Muringboje) – oder umgekehrt. <b>Esc</b> bricht ab.</p>
+      <div id="lineList" class="lines"></div>
+      <div class="row">
+        <button id="btnStd" class="btn">Standardleinen</button>
+        <button id="btnClear" class="btn">Alle lösen</button>
+      </div>
+      <h3>Anker</h3>
+      <div class="row">
+        <button id="btnAnchor" class="btn wide">⚓ Anker werfen</button>
+      </div>
+      <p class="hint">Der Anker fällt am Bug. Die Kette fierst du in der Leinenliste (gedrückt halten).</p>
+    </section>
+  </aside>
+
+  <main id="stage">
+    <canvas id="cv"></canvas>
+
+    <div id="hud" class="glass">
+      <div><span>Fahrt</span><b id="hSpeed">0.0</b><small>kn</small></div>
+      <div><span>Kurs</span><b id="hHdg">000</b><small>°</small></div>
+      <div><span>Drehrate</span><b id="hRot">0</b><small>°/min</small></div>
+      <div><span>Querversatz</span><b id="hSway">0.0</b><small>kn</small></div>
+      <div><span>Leinenzug</span><b id="hTen">0</b><small>N</small></div>
+      <div><span>Kontakte</span><b id="hCont">0</b><small id="hImp"></small></div>
+    </div>
+
+    <div id="hint" class="glass hidden"></div>
+    <div id="toast" class="hidden"></div>
+
+    <div id="controls" class="glass">
+      <div class="ctl lever">
+        <div class="lbl">Gashebel</div>
+        <div id="lever" class="vslider" tabindex="0">
+          <div class="track"></div><div class="mark m-f">VOR</div><div class="mark m-n">N</div><div class="mark m-r">RÜCK</div><div class="knob"></div>
+        </div>
+        <div id="oLever" class="val">0 %</div>
+        <div class="keys">W / S · Leertaste = Neutral</div>
+      </div>
+      <div class="ctl rudder">
+        <div class="lbl">Ruder</div>
+        <div id="rudder" class="hslider" tabindex="0">
+          <div class="track"></div><div class="center"></div><div class="knob"></div>
+        </div>
+        <div class="rud-row"><span>Bb</span><div id="oRudder" class="val">0°</div><span>Stb</span></div>
+        <div class="keys">A / D · C = Mitte</div>
+        <div id="thrRow" class="thr hidden">
+          <button id="btnThrL" class="btn small">◄ Bugstrahl (Q)</button>
+          <button id="btnThrR" class="btn small">(E) Bugstrahl ►</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="helpModal" class="modal hidden" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <button id="btnCloseHelp" class="icon close" aria-label="Schließen">✕</button>
+    <h2>So funktioniert der Trainer</h2>
+    <div class="cols">
+      <div>
+        <h4>Steuern</h4>
+        <ul>
+          <li><b>Gashebel</b>: W/S bzw. ↑/↓ (jeweils 10 %), Leertaste = Neutral. Unter ca. 5 % ist der Gang ausgekuppelt.</li>
+          <li><b>Ruder</b>: A/D bzw. ←/→ gedrückt halten, C = Mitte. Das Ruder bleibt stehen (wie beim Steuerrad).</li>
+          <li><b>Bugstrahlruder</b> (falls vorhanden): Q / E.</li>
+          <li><b>Kamera</b>: Mausrad = Zoom, Ziehen = Verschieben, Option „Kamera folgt“.</li>
+          <li><b>P</b> Pause · <b>R</b> Neustart · <b>G</b> Kräfte an/aus.</li>
+        </ul>
+        <h4>Leinen</h4>
+        <ul>
+          <li>Klicke eine <b>Bootsklampe</b> (Bug, Mitte, Heck, Bb/Stb), dann einen <b>Festmachpunkt</b>: Klampe, Poller, Pfahl, Muringboje – oder umgekehrt.</li>
+          <li>Leine anklicken = auswählen. <b>Entf</b> = Leine lösen, <b>[</b> / <b>]</b> = dichter holen / fieren (oder Buttons im Tab „Leinen“).</li>
+          <li>Die Leinenfarbe zeigt die Belastung (grün → rot). Leinen können nur ziehen, nicht schieben.</li>
+        </ul>
+      </div>
+      <div>
+        <h4>Was wird simuliert?</h4>
+        <ul>
+          <li>Starrkörper mit Masse, Trägheitsmoment und „Added Mass“ (mitbewegtes Wasser).</li>
+          <li>Rumpf- und Kielwiderstand quer und längs, Gierdämpfung, Wind (Windangriffsfläche) und Strömung.</li>
+          <li><b>Propeller</b>: Schub abhängig von Drehzahl und Fahrt, Rückwärts schwächer, <b>Radeffekt</b> (Rechts-/Linksdreher), Propellerstrahl.</li>
+          <li><b>Ruder</b>: Auftrieb und Widerstand nach Anströmwinkel, Strömungsabriss. Ruder im Propellerstrahl wirken auch im Stand; Ruder neben der Schraube erst mit Fahrt durchs Wasser.</li>
+          <li><b>Leinen</b>: elastisch, nur Zug, mit Dämpfung. Federn, Vor- und Achterleinen erzeugen reale Drehmomente (Eindampfen).</li>
+          <li>Rumpfkontakt mit Steg, Pfählen und Nachbarbooten (Fender-Modell).</li>
+        </ul>
+        <p class="hint">Hinweis: Es ist ein Lernmodell, keine zertifizierte Simulation. Die Kennwerte sind für typische Fahrtenyachten abgeschätzt und im Tab „Boot“ anpassbar.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/boats.js"></script>
+<script src="js/physics.js"></script>
+<script src="js/scenes.js"></script>
+<script src="js/render.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
